@@ -28,10 +28,12 @@ describe("governance", () => {
   let proposerVoterRecordPda: PublicKey;
   let voter1VoterRecordPda: PublicKey;
   let voter2VoterRecordPda: PublicKey;
+  let adminVoterRecordPda: PublicKey;
   let proposalPda: PublicKey;
   let mint: PublicKey;
   let voter1Ata: PublicKey;
   let voter2Ata: PublicKey;
+  let adminAta: PublicKey;
 
   const titleHash = Buffer.alloc(32);
   titleHash[0] = 1;
@@ -140,6 +142,17 @@ describe("governance", () => {
       .signers([voter2])
       .rpc();
 
+    await program.methods
+      .registerVoter()
+      .accounts({
+        governance: governancePda,
+        voterRecord: adminVoterRecordPda,
+        voter: admin.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
+
     const rec = await program.account.voterRecord.fetch(proposerVoterRecordPda);
     expect(rec.creditsRemaining.toNumber()).to.equal(100);
   });
@@ -184,6 +197,20 @@ describe("governance", () => {
       undefined,
       TOKEN_PROGRAM_ID
     );
+    adminAta = getAssociatedTokenAddressSync(
+      mint,
+      admin.publicKey,
+      false,
+      TOKEN_PROGRAM_ID
+    );
+    await createAssociatedTokenAccount(
+      provider.connection,
+      admin,
+      mint,
+      admin.publicKey,
+      undefined,
+      TOKEN_PROGRAM_ID
+    );
     await mintTo(
       provider.connection,
       admin,
@@ -202,6 +229,17 @@ describe("governance", () => {
       voter2Ata,
       admin,
       49 * 1e6,
+      undefined,
+      undefined,
+      TOKEN_PROGRAM_ID
+    );
+    await mintTo(
+      provider.connection,
+      admin,
+      mint,
+      adminAta,
+      admin,
+      1 * 1e6,
       undefined,
       undefined,
       TOKEN_PROGRAM_ID
@@ -262,6 +300,7 @@ describe("governance", () => {
       .accounts({
         governance: governancePda,
         proposalAccount: proposalPda,
+        voterRecord: voter1VoterRecordPda,
         voteAccount: vote1Pda,
         voterTokenAccount: voter1Ata,
         voter: voter1.publicKey,
@@ -275,6 +314,7 @@ describe("governance", () => {
       .accounts({
         governance: governancePda,
         proposalAccount: proposalPda,
+        voterRecord: voter2VoterRecordPda,
         voteAccount: vote2Pda,
         voterTokenAccount: voter2Ata,
         voter: voter2.publicKey,
@@ -311,6 +351,7 @@ describe("governance", () => {
         .accounts({
           governance: governancePda,
           proposalAccount: proposalPda,
+          voterRecord: voter1VoterRecordPda,
           voteAccount: vote1Pda,
           voterTokenAccount: voter1Ata,
           voter: voter1.publicKey,
@@ -333,12 +374,6 @@ describe("governance", () => {
       ],
       programId
     );
-    const adminAta = getAssociatedTokenAddressSync(
-      mint,
-      admin.publicKey,
-      false,
-      TOKEN_PROGRAM_ID
-    );
     let err: unknown;
     try {
       await program.methods
@@ -346,6 +381,7 @@ describe("governance", () => {
         .accounts({
           governance: governancePda,
           proposalAccount: proposalPda,
+          voterRecord: adminVoterRecordPda,
           voteAccount: voteDummyPda,
           voterTokenAccount: adminAta,
           voter: admin.publicKey,
