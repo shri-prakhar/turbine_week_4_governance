@@ -144,37 +144,6 @@ describe("governance", () => {
     expect(rec.creditsRemaining.toNumber()).to.equal(100);
   });
 
-  it("creates proposal", async () => {
-    const proposalIdBuf = Buffer.alloc(8);
-    proposalIdBuf.writeBigUInt64LE(BigInt(0));
-    [proposalPda] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("proposal"),
-        governancePda.toBuffer(),
-        proposalIdBuf,
-      ],
-      programId
-    );
-
-    await program.methods
-      .createProposal(Array.from(titleHash), descriptionUri)
-      .accounts({
-        governance: governancePda,
-        voterRecord: proposerVoterRecordPda,
-        proposal: proposalPda,
-        proposer: proposer.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .signers([proposer])
-      .rpc();
-
-    const prop = await program.account.proposal.fetch(proposalPda);
-    expect(prop.proposalId.toNumber()).to.equal(0);
-    expect(prop.yesVotes.toNumber()).to.equal(0);
-    expect(prop.noVotes.toNumber()).to.equal(0);
-    expect(prop.finalized).to.be.false;
-  });
-
   it("sets up SPL mint and voter token accounts", async () => {
     const provider = anchor.getProvider() as anchor.AnchorProvider;
     mint = await createMint(
@@ -237,6 +206,37 @@ describe("governance", () => {
       undefined,
       TOKEN_PROGRAM_ID
     );
+  });
+
+  it("creates proposal", async () => {
+    const proposalIdBuf = Buffer.alloc(8);
+    proposalIdBuf.writeBigUInt64LE(BigInt(0));
+    [proposalPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("proposal"),
+        governancePda.toBuffer(),
+        proposalIdBuf,
+      ],
+      programId
+    );
+
+    await program.methods
+      .createProposal(Array.from(titleHash), descriptionUri)
+      .accounts({
+        governance: governancePda,
+        voterRecord: proposerVoterRecordPda,
+        proposal: proposalPda,
+        proposer: proposer.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([proposer])
+      .rpc();
+
+    const prop = await program.account.proposal.fetch(proposalPda);
+    expect(prop.proposalId.toNumber()).to.equal(0);
+    expect(prop.yesVotes.toNumber()).to.equal(0);
+    expect(prop.noVotes.toNumber()).to.equal(0);
+    expect(prop.finalized).to.be.false;
   });
 
   it("casts vote: voter1 yes (1), voter2 no (0)", async () => {
@@ -304,8 +304,9 @@ describe("governance", () => {
       ],
       programId
     );
-    await expect(
-      program.methods
+    let err: unknown;
+    try {
+      await program.methods
         .castVote(0)
         .accounts({
           governance: governancePda,
@@ -316,8 +317,11 @@ describe("governance", () => {
           systemProgram: anchor.web3.SystemProgram.programId,
         })
         .signers([voter1])
-        .rpc()
-    ).to.be.rejected;
+        .rpc();
+    } catch (e) {
+      err = e;
+    }
+    expect(err).to.exist;
   });
 
   it("rejects invalid vote type", async () => {
