@@ -50,6 +50,7 @@ pub struct CastVoteContext<'info> {
 
     #[account(
         constraint = voter_token_account.owner == voter.key() @ GovernanceError::Unauthorized,
+        constraint = voter_token_account.mint == governance.governance_mint @ GovernanceError::InvalidGovernanceMint,
     )]
     pub voter_token_account: Account<'info, TokenAccount>,
 

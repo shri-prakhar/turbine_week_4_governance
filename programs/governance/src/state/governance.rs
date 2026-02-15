@@ -4,6 +4,7 @@ use anchor_lang::prelude::*;
 #[derive(InitSpace)]
 pub struct Governance {
     pub admin: Pubkey,
+    pub governance_mint: Pubkey,
     pub voice_credits_per_voter: u64,
     pub voting_period: i64,
     pub proposal_count: u64,

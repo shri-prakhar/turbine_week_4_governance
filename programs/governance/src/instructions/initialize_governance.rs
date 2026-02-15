@@ -17,6 +17,9 @@ pub struct InitializeGovernance<'info> {
     pub admin: Signer<'info>,
 
     pub system_program: Program<'info, System>,
+
+    /// CHECK: We only store the key; no deserialization. Caller passes the SPL mint; all future votes must use this mint.
+    pub governance_mint: UncheckedAccount<'info>,
 }
 
 pub fn handler(
@@ -32,6 +35,7 @@ pub fn handler(
 
     let governance = &mut ctx.accounts.governance;
     governance.admin = ctx.accounts.admin.key();
+    governance.governance_mint = ctx.accounts.governance_mint.key();
     governance.voice_credits_per_voter = voice_credits_per_voter;
     governance.voting_period = voting_period;
     governance.proposal_count = 0;

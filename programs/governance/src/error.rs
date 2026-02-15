@@ -52,4 +52,7 @@ pub enum GovernanceError {
 
     #[msg("Invalid vote type (must be 0 or 1)")]
     InvalidVoteType,
+
+    #[msg("Token account must be for the governance mint")]
+    InvalidGovernanceMint,
 }

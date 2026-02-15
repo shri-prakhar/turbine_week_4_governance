@@ -41,26 +41,29 @@ describe("governance", () => {
 
   before(async () => {
     const provider = anchor.getProvider() as anchor.AnchorProvider;
-    const sig = await provider.connection.requestAirdrop(
-      admin.publicKey,
-      10 * anchor.web3.LAMPORTS_PER_SOL
-    );
-    await provider.connection.confirmTransaction(sig);
-    await provider.connection.requestAirdrop(
-      proposer.publicKey,
-      2 * anchor.web3.LAMPORTS_PER_SOL
-    );
-    await provider.connection.requestAirdrop(
-      voter1.publicKey,
-      2 * anchor.web3.LAMPORTS_PER_SOL
-    );
-    await provider.connection.requestAirdrop(
-      voter2.publicKey,
-      2 * anchor.web3.LAMPORTS_PER_SOL
-    );
+    for (const kp of [admin, proposer, voter1, voter2]) {
+      const amount = kp === admin ? 10 : 2;
+      const sig = await provider.connection.requestAirdrop(
+        kp.publicKey,
+        amount * anchor.web3.LAMPORTS_PER_SOL
+      );
+      await provider.connection.confirmTransaction(sig);
+    }
   });
 
   it("initializes governance", async () => {
+    const provider = anchor.getProvider() as anchor.AnchorProvider;
+    mint = await createMint(
+      provider.connection,
+      admin,
+      admin.publicKey,
+      null,
+      6,
+      undefined,
+      undefined,
+      TOKEN_PROGRAM_ID
+    );
+
     [governancePda] = PublicKey.findProgramAddressSync(
       [Buffer.from("governance"), admin.publicKey.toBuffer()],
       programId
@@ -72,12 +75,15 @@ describe("governance", () => {
         governance: governancePda,
         admin: admin.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
+        governanceMint: mint,
       })
       .signers([admin])
       .rpc();
 
     const gov = await program.account.governance.fetch(governancePda);
     expect(gov.admin.equals(admin.publicKey)).to.be.true;
+    const storedMint = new PublicKey(gov.governanceMint);
+    expect(storedMint.toString()).to.equal(mint.toString());
     expect(gov.voiceCreditsPerVoter.toNumber()).to.equal(100);
     expect(gov.votingPeriod.toNumber()).to.equal(2);
     expect(gov.proposalCount.toNumber()).to.equal(0);
@@ -105,6 +111,14 @@ describe("governance", () => {
         Buffer.from("voter"),
         governancePda.toBuffer(),
         voter2.publicKey.toBuffer(),
+      ],
+      programId
+    );
+    [adminVoterRecordPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("voter"),
+        governancePda.toBuffer(),
+        admin.publicKey.toBuffer(),
       ],
       programId
     );
@@ -159,16 +173,6 @@ describe("governance", () => {
 
   it("sets up SPL mint and voter token accounts", async () => {
     const provider = anchor.getProvider() as anchor.AnchorProvider;
-    mint = await createMint(
-      provider.connection,
-      admin,
-      admin.publicKey,
-      null,
-      6,
-      undefined,
-      undefined,
-      TOKEN_PROGRAM_ID
-    );
     voter1Ata = getAssociatedTokenAddressSync(
       mint,
       voter1.publicKey,
