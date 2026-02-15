@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::Mint;
 use crate::error::GovernanceError;
 use crate::state::Governance;
 
@@ -18,8 +19,7 @@ pub struct InitializeGovernance<'info> {
 
     pub system_program: Program<'info, System>,
 
-    /// CHECK: We only store the key; no deserialization. Caller passes the SPL mint; all future votes must use this mint.
-    pub governance_mint: UncheckedAccount<'info>,
+    pub governance_mint: Account<'info, Mint>,
 }
 
 pub fn handler(

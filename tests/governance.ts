@@ -168,7 +168,7 @@ describe("governance", () => {
       .rpc();
 
     const rec = await program.account.voterRecord.fetch(proposerVoterRecordPda);
-    expect(rec.creditsRemaining.toNumber()).to.equal(100);
+    expect(rec.proposalsVotedOn.toNumber()).to.equal(0);
   });
 
   it("sets up SPL mint and voter token accounts", async () => {

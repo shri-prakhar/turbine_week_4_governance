@@ -39,6 +39,3 @@ pub mod governance {
         instructions::finalize_proposal::handler(ctx)
     }
 }
-
-#[derive(Accounts)]
-pub struct Initialize {}
